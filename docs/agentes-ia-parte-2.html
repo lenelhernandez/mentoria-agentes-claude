@@ -1,0 +1,575 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentes con Claude — Parte 2</title>
+<style>
+  :root{
+    --bg:#0a0f1e;
+    --bg2:#0f1730;
+    --fg:#e9eefc;
+    --muted:#94a1c0;
+    --accent:#4ade80;
+    --accent2:#38bdf8;
+    --card:#131b31;
+    --card2:#17203a;
+    --line:#26324f;
+    --danger:#fb7185;
+    --warn:#fbbf24;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(56,189,248,.14), transparent 60%),
+      radial-gradient(900px 600px at 0% 110%, rgba(74,222,128,.12), transparent 60%),
+      linear-gradient(160deg,var(--bg),var(--bg2));
+    color:var(--fg);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+
+  #deck{position:fixed;inset:0}
+
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(28px,6vw,80px);
+    max-width:var(--maxw);
+    margin:0 auto;
+    opacity:0;visibility:hidden;
+    transform:translateY(14px) scale(.995);
+    transition:opacity .32s ease, transform .32s ease, visibility .32s;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none}
+
+  .kicker{
+    text-transform:uppercase;letter-spacing:.18em;
+    font-size:clamp(.68rem,1.1vw,.8rem);
+    font-weight:700;color:var(--accent);
+    margin:0 0 14px;
+  }
+  h1{
+    font-size:clamp(2.4rem,6.4vw,4.6rem);
+    line-height:1.03;margin:0;letter-spacing:-.03em;font-weight:800;
+  }
+  h2{
+    font-size:clamp(1.7rem,3.8vw,2.9rem);
+    line-height:1.1;margin:0 0 26px;letter-spacing:-.02em;font-weight:750;
+  }
+  h1 .grad,h2 .grad{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  p{font-size:clamp(1rem,1.6vw,1.18rem);line-height:1.55;color:var(--muted);margin:0 0 16px;max-width:60ch}
+  .lead{font-size:clamp(1.1rem,2vw,1.4rem);color:#c7d2ea;max-width:52ch}
+
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .grid.two{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .grid.three{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+
+  .card{
+    background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px 20px 18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:.85;
+  }
+  .card h3{margin:0 0 8px;font-size:clamp(1rem,1.6vw,1.16rem);letter-spacing:-.01em}
+  .card p{font-size:clamp(.9rem,1.3vw,1rem);margin:0;max-width:34ch;color:#a8b5d2;line-height:1.45}
+  .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:50%;
+    background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.35);
+    color:var(--accent);font-size:.82rem;font-weight:800;margin-bottom:12px;
+  }
+
+  .flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .flow .step{
+    flex:1 1 150px;min-width:150px;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px;
+  }
+  .flow .step b{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:6px}
+  .flow .step span{font-size:.95rem;color:#c3cee6;line-height:1.4;display:block}
+  .flow .arrow{align-self:center;color:var(--muted);font-size:1.4rem;padding:0 2px}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:clamp(.85rem,1.35vw,1rem)}
+  th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{color:var(--muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  tbody td:first-child{color:var(--muted);font-weight:600;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  .hl{color:var(--accent);font-weight:650}
+
+  .callout{
+    margin-top:22px;padding:16px 20px;border-radius:14px;
+    background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.28);
+    font-size:clamp(.95rem,1.4vw,1.08rem);color:#d5f5e2;max-width:72ch;
+  }
+  .callout strong{color:var(--accent)}
+
+  .pill{
+    display:inline-block;padding:5px 12px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);
+    color:#b9c6e2;font-size:.8rem;margin:0 6px 6px 0;
+  }
+
+  ul.clean{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+  ul.clean li{
+    display:flex;gap:12px;align-items:flex-start;
+    font-size:clamp(.95rem,1.45vw,1.08rem);color:#c3cee6;line-height:1.45;
+  }
+  ul.clean li::before{
+    content:"";flex:0 0 8px;height:8px;margin-top:.52em;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 0 4px rgba(74,222,128,.14);
+  }
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+  .cols h3{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px}
+  .good h3{color:var(--accent)}
+  .bad h3{color:var(--danger)}
+  .good li::before{background:var(--accent);box-shadow:0 0 0 4px rgba(74,222,128,.14)}
+  .bad li::before{background:var(--danger);box-shadow:0 0 0 4px rgba(251,113,133,.14)}
+
+  .prompt{
+    background:#0c1326;border:1px solid var(--line);border-radius:16px;
+    padding:20px 22px;font-family:"Cascadia Code",Consolas,ui-monospace,monospace;
+    font-size:clamp(.82rem,1.3vw,.96rem);line-height:1.7;color:#cdd8ef;
+    white-space:pre-wrap;
+  }
+  .prompt .tag{color:var(--accent2)}
+  .prompt .val{color:#e9eefc}
+  .prompt .ok{color:var(--accent)}
+
+  .center{text-align:center;align-items:center}
+  .center p{margin-left:auto;margin-right:auto}
+
+  .hud{
+    position:fixed;right:22px;bottom:20px;display:flex;align-items:center;gap:10px;
+    z-index:50;user-select:none;
+  }
+  .hud button{
+    width:38px;height:38px;border-radius:12px;
+    background:rgba(19,27,49,.85);border:1px solid var(--line);color:var(--fg);
+    font-size:1.15rem;cursor:pointer;line-height:1;transition:.15s;
+    backdrop-filter:blur(6px);
+  }
+  .hud button:hover{background:var(--card2);border-color:#3a4a72}
+  #counter{font-size:.8rem;color:var(--muted);min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.05);z-index:60}
+  .progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s ease}
+
+  .brand{position:fixed;left:22px;bottom:20px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#5f6d8c;z-index:50}
+  .notes{display:none}
+
+  @media (max-width:720px){
+    .cols{grid-template-columns:1fr;gap:22px}
+    .brand{display:none}
+    .flow .arrow{display:none}
+  }
+
+  @media print{
+    @page{size:landscape;margin:0}
+    body{overflow:visible;background:#0a0f1e}
+    #deck{position:static}
+    .slide{
+      position:relative;inset:auto;opacity:1;visibility:visible;transform:none;
+      height:100vh;page-break-after:always;break-after:page;
+    }
+    .hud,.progress,.brand{display:none}
+  }
+
+  .prompt .cm{color:#5f6d8c}
+  code{font-family:"Cascadia Code",Consolas,ui-monospace,monospace;font-size:.88em;background:rgba(56,189,248,.1);border:1px solid rgba(56,189,248,.22);border-radius:6px;padding:1px 6px;color:#cfe9fb}
+  .prompt code{background:none;border:0;padding:0}
+  .slide{overflow-y:auto}
+  .slide .prompt{overflow-x:auto}
+  .prompt.code{white-space:pre;font-size:clamp(.72rem,1.15vw,.92rem);line-height:1.55}
+</style>
+</head>
+<body>
+<div class="progress"><span id="bar"></span></div>
+
+<main id="deck">
+
+  <section class="slide active">
+    <p class="kicker">Charla para el equipo · Parte 2</p>
+    <h1>Agentes con <span class="grad">Claude</span></h1>
+    <p class="lead" style="margin-top:22px">Del concepto a la práctica: cómo funciona un agente por dentro, cómo sacarle provecho a Claude Code y cómo construir el nuestro.</p>
+    <div style="margin-top:30px">
+      <span class="pill">Duración: 40–50 min + práctica</span>
+      <span class="pill">Nivel: intermedio</span>
+      <span class="pill">Requisito: Parte 1</span>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Repaso</p>
+    <h2>Lo que ya sabemos</h2>
+    <div class="flow">
+      <div class="step"><b>Modelo</b><span>Razona y decide el siguiente paso</span></div>
+      <div class="arrow">+</div>
+      <div class="step"><b>Herramientas</b><span>Leer, editar, ejecutar, consultar</span></div>
+      <div class="arrow">+</div>
+      <div class="step"><b>Contexto</b><span>Lo que el modelo "ve" en cada paso</span></div>
+      <div class="arrow">=</div>
+      <div class="step"><b>Bucle</b><span>Actuar → observar → ajustar, hasta terminar</span></div>
+    </div>
+    <div class="callout">Hoy abrimos la caja: <strong>cómo se implementa cada pieza</strong> y cómo se configura en el ecosistema de Claude.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Agenda</p>
+    <h2>Qué vamos a ver</h2>
+    <div class="grid three">
+      <div class="card"><span class="num">1</span><h3>El ecosistema Claude</h3><p>Modelos, superficies y cuándo usar cada uno.</p></div>
+      <div class="card"><span class="num">2</span><h3>Tool use por dentro</h3><p>El protocolo y el bucle en ~20 líneas de código.</p></div>
+      <div class="card"><span class="num">3</span><h3>Context engineering</h3><p>Qué darle al modelo y qué dejar fuera.</p></div>
+      <div class="card"><span class="num">4</span><h3>Claude Code a fondo</h3><p>CLAUDE.md, plan mode, skills, subagentes, hooks y MCP.</p></div>
+      <div class="card"><span class="num">5</span><h3>Seguridad, costo y calidad</h3><p>Prompt injection, permisos, effort, caching y evals.</p></div>
+      <div class="card"><span class="num">6</span><h3>Manos a la obra</h3><p>Un mini agente propio en un repo para practicar.</p></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Ecosistema · Modelos</p>
+    <h2>La familia Claude</h2>
+    <table>
+      <thead><tr><th>Modelo</th><th>Perfil</th><th>Úsalo para</th></tr></thead>
+      <tbody>
+        <tr><td>Fable 5.1</td><td>El más capaz</td><td>Problemas muy difíciles y tareas largas de muchas horas</td></tr>
+        <tr><td>Opus 5.5</td><td class="hl">Equilibrio capacidad / costo</td><td>Programación, agentes complejos, revisión de código</td></tr>
+        <tr><td>Sonnet 5.5</td><td>Rápido y capaz</td><td>Trabajo diario de código, agentes con mucho volumen</td></tr>
+        <tr><td>Haiku 5.5</td><td>El más rápido y barato</td><td>Clasificar, extraer, subagentes que leen mucho</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">Además del modelo hay una segunda perilla: <strong>effort</strong> (low → max). Antes de cambiar a un modelo más caro, prueba subir el effort; antes de bajar de modelo, prueba bajar el effort.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Ecosistema · Superficies</p>
+    <h2>¿Dónde vive Claude?</h2>
+    <div class="grid three">
+      <div class="card"><h3>Apps de Claude</h3><p>Web, escritorio y móvil. Chat, proyectos, documentos y conectores.</p></div>
+      <div class="card"><h3>Claude Code</h3><p>Agente de programación en terminal, escritorio, IDE y web. <span class="hl">El que usaremos hoy.</span></p></div>
+      <div class="card"><h3>Claude API</h3><p>Messages API + tool use. Tú escribes el bucle y las herramientas.</p></div>
+      <div class="card"><h3>Claude Agent SDK</h3><p>El "motor" de Claude Code como librería: herramientas, permisos y subagentes incluidos.</p></div>
+      <div class="card"><h3>Managed Agents</h3><p>Anthropic corre el bucle y un sandbox por sesión. Tú defines el agente.</p></div>
+      <div class="card"><h3>Integraciones</h3><p>Slack, Chrome, conectores MCP y nubes (AWS, Google Cloud, Microsoft).</p></div>
+    </div>
+    <div class="callout">Pregunta guía: <strong>¿quién escribe el bucle y quién pone la infraestructura?</strong> API → tú y tú · Agent SDK → SDK y tú · Managed Agents → Anthropic y Anthropic.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Antes de construir</p>
+    <h2>¿De verdad necesito un agente?</h2>
+    <div class="flow">
+      <div class="step"><b>1. Una llamada</b><span>Resumir, clasificar, extraer. Una petición, una respuesta.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2. Workflow</b><span>Pasos fijos que orquesta tu código: A, luego B, luego C.</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3. Agente</b><span>El modelo decide los pasos. Tarea abierta y difícil de especificar.</span></div>
+    </div>
+    <div class="grid" style="margin-top:22px">
+      <span class="pill">¿La tarea es compleja y abierta?</span>
+      <span class="pill">¿El valor justifica costo y latencia?</span>
+      <span class="pill">¿Claude es bueno en esto?</span>
+      <span class="pill">¿Los errores se detectan y se revierten?</span>
+    </div>
+    <div class="callout">Si alguna respuesta es "no", <strong>baja un escalón</strong>. El agente más fiable es el que no necesitaste construir.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Por dentro · Protocolo</p>
+    <h2>Cómo funciona el tool use</h2>
+    <div class="grid two">
+      <ul class="clean">
+        <li><b>Tú</b> describes herramientas con nombre, descripción y JSON Schema.</li>
+        <li><b>Claude</b> responde con un bloque <code>tool_use</code>: "llama a X con estos argumentos" y <code>stop_reason: "tool_use"</code>.</li>
+        <li><b>Tu código</b> decide si la ejecuta y devuelve un <code>tool_result</code> (o un error con <code>is_error</code>).</li>
+        <li>Se repite hasta <code>stop_reason: "end_turn"</code>.</li>
+      </ul>
+      <div class="prompt"><span class="cm"># Lo que Claude ve</span>
+{
+  <span class="tag">"name"</span>: <span class="val">"ejecutar_tests"</span>,
+  <span class="tag">"description"</span>: <span class="val">"Ejecuta pytest y devuelve
+    la salida. Úsala para reproducir
+    fallos y verificar cambios."</span>,
+  <span class="tag">"strict"</span>: <span class="ok">true</span>,
+  <span class="tag">"input_schema"</span>: { ... }
+}</div>
+    </div>
+    <div class="callout">Claude <strong>nunca ejecuta nada por sí mismo</strong>: pide, y tu código decide. Ahí viven los permisos.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Por dentro · Código</p>
+    <h2>El bucle en 20 líneas</h2>
+    <div class="prompt code"><span class="tag">mensajes</span> = [{"role": "user", "content": objetivo}]
+
+<span class="tag">for</span> turno <span class="tag">in</span> range(max_turnos):                        <span class="cm"># límite de seguridad</span>
+    r = client.messages.create(model=<span class="val">"claude-opus-5-5"</span>, system=sistema,
+                               tools=ESQUEMAS, messages=mensajes)
+    mensajes.append({"role": "assistant", "content": r.content})
+
+    <span class="tag">if</span> r.stop_reason != <span class="val">"tool_use"</span>:                     <span class="cm"># terminó</span>
+        <span class="tag">return</span> texto_final(r)
+
+    resultados = []
+    <span class="tag">for</span> b <span class="tag">in</span> r.content:
+        <span class="tag">if</span> b.type == <span class="val">"tool_use"</span>:
+            salida = herramientas.ejecutar(b.name, b.input)  <span class="cm"># ¡aquí van los permisos!</span>
+            resultados.append({"type": "tool_result",
+                               "tool_use_id": b.id, "content": salida})
+    mensajes.append({"role": "user", "content": resultados})  <span class="cm"># todos juntos</span></div>
+    <div class="callout">Eso es un agente. Todo lo demás (Claude Code incluido) es <strong>mejores herramientas, mejor contexto y mejores guardarraíles</strong> alrededor de este bucle.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Context engineering</p>
+    <h2>El contexto es un recurso finito</h2>
+    <div class="grid three">
+      <div class="card"><h3>Instrucciones estables</h3><p>System prompt y CLAUDE.md: stack, comandos, convenciones. Cortos y concretos.</p></div>
+      <div class="card"><h3>Herramientas claras</h3><p>Pocas, bien nombradas y con descripciones que digan <i>cuándo</i> usarlas.</p></div>
+      <div class="card"><h3>Salidas acotadas</h3><p>Trunca logs y archivos enormes. Cada token que entra compite por atención.</p></div>
+      <div class="card"><h3>Cargar bajo demanda</h3><p>Que el agente busque y lea lo que necesita, no "pegarle todo el repo".</p></div>
+      <div class="card"><h3>Subagentes</h3><p>Aíslan exploraciones largas y devuelven solo la conclusión.</p></div>
+      <div class="card"><h3>Compactación y memoria</h3><p>Resumir el historial en tareas largas; guardar decisiones fuera del contexto.</p></div>
+    </div>
+    <div class="callout">Más contexto no es mejor contexto: <strong>lo justo, en el momento justo</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Claude Code · Flujo</p>
+    <h2>Cómo trabajar con Claude Code</h2>
+    <div class="flow">
+      <div class="step"><b>1. Explorar</b><span>"Lee el módulo de pagos y explícame el flujo"</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2. Planear</b><span><span class="hl">Plan mode</span> (Shift+Tab): propone sin tocar nada</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3. Implementar</b><span>Edita siguiendo CLAUDE.md y tus convenciones</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>4. Verificar</b><span>Tests, lint, typecheck; idealmente un revisor aparte</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>5. Entregar</b><span>Commit y PR con descripción, para revisión humana</span></div>
+    </div>
+    <div class="grid two" style="margin-top:22px">
+      <div class="prompt"><span class="cm"># CLAUDE.md (raíz del repo)</span>
+<span class="tag">## Comandos</span>
+- Tests: <span class="val">npm test</span> · Lint: <span class="val">npm run lint</span>
+<span class="tag">## Convenciones</span>
+- <span class="val">Middlewares en src/middleware, uno por archivo</span>
+- <span class="ok">Nunca editar migraciones ya aplicadas</span></div>
+      <ul class="clean">
+        <li><code>/init</code> genera un CLAUDE.md inicial a partir del repo.</li>
+        <li>Lo que corriges dos veces, va a CLAUDE.md.</li>
+        <li>Se versiona: es documentación para humanos y agentes.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Claude Code · Extensiones</p>
+    <h2>Las piezas para extenderlo</h2>
+    <table>
+      <thead><tr><th>Pieza</th><th>Qué es</th><th>Úsala cuando…</th></tr></thead>
+      <tbody>
+        <tr><td>CLAUDE.md</td><td>Contexto que siempre se carga</td><td>Algo aplica a <span class="hl">todas</span> las tareas del repo</td></tr>
+        <tr><td>Skills</td><td>Instrucciones (y scripts) que se cargan cuando aplican; se invocan con <code>/nombre</code></td><td>Un procedimiento se repite: "cómo añadimos un endpoint"</td></tr>
+        <tr><td>Subagentes</td><td>Otro agente con su propio contexto, prompt y herramientas</td><td>Revisar, investigar o explorar sin llenar el contexto principal</td></tr>
+        <tr><td>Hooks</td><td>Scripts que se ejecutan en eventos (antes/después de una herramienta…)</td><td>Algo debe pasar <span class="hl">siempre</span>, sin depender del modelo</td></tr>
+        <tr><td>MCP</td><td>Protocolo para conectar herramientas y datos externos</td><td>Necesitas GitHub, Jira, una base de datos, el navegador…</td></tr>
+        <tr><td>Plugins</td><td>Paquete con skills, agentes, hooks y MCP</td><td>Quieres compartir todo lo anterior con el equipo</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Claude Code · Ejemplos</p>
+    <h2>Skill y hook en el repo de práctica</h2>
+    <div class="grid two">
+      <div class="prompt"><span class="cm"># .claude/skills/agregar-herramienta/SKILL.md</span>
+---
+<span class="tag">name:</span> <span class="val">agregar-herramienta</span>
+<span class="tag">description:</span> <span class="val">Añade una herramienta al
+  agente (esquema + código + test).</span>
+---
+1. Esquema en ESQUEMAS, strict: true
+2. Método en Herramientas, con _resolver
+3. Test feliz + test de error
+4. <span class="ok">Ejecuta pytest y muestra el resultado</span></div>
+      <div class="prompt"><span class="cm"># .claude/settings.json</span>
+<span class="tag">"hooks"</span>: { <span class="tag">"PreToolUse"</span>: [{
+  <span class="tag">"matcher"</span>: <span class="val">"Edit|Write"</span>,
+  <span class="tag">"hooks"</span>: [{ <span class="tag">"type"</span>: <span class="val">"command"</span>,
+    <span class="tag">"command"</span>: <span class="val">"python3 .claude/hooks/
+      proteger_archivos.py"</span> }]
+}]}
+<span class="cm"># exit 2 → bloquea la edición y Claude
+# recibe el motivo</span></div>
+    </div>
+    <div class="callout">Regla práctica: <strong>skills para guiar, hooks para garantizar</strong>. Una instrucción puede ignorarse; un hook no.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Conectar el mundo</p>
+    <h2>MCP: Model Context Protocol</h2>
+    <div class="flow">
+      <div class="step"><b>Agente</b><span>Claude Code, Claude apps o tu propio agente</span></div>
+      <div class="arrow">⇄</div>
+      <div class="step"><b>Cliente MCP</b><span>Descubre herramientas y recursos de cada servidor</span></div>
+      <div class="arrow">⇄</div>
+      <div class="step"><b>Servidores MCP</b><span>GitHub · Jira · Postgres · Sentry · Figma · tus APIs internas</span></div>
+    </div>
+    <div class="grid two" style="margin-top:22px">
+      <ul class="clean">
+        <li>Un estándar abierto: escribes el servidor una vez y lo usa cualquier cliente.</li>
+        <li>Expone <b>herramientas</b>, <b>recursos</b> (datos) y <b>prompts</b>.</li>
+      </ul>
+      <ul class="clean">
+        <li>Locales (stdio) o remotos (HTTP) con autenticación.</li>
+        <li>Cada servidor es código de terceros: <b>revísalo como una dependencia</b>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Seguridad</p>
+    <h2>Riesgos propios de los agentes</h2>
+    <div class="cols">
+      <div class="bad">
+        <h3>Amenazas</h3>
+        <ul class="clean">
+          <li><b>Prompt injection:</b> un README, issue o web con "ignora tus instrucciones y…".</li>
+          <li><b>Exceso de permisos:</b> <code>rm -rf</code>, <code>git push --force</code>, acceso a producción.</li>
+          <li><b>Fuga de secretos:</b> .env leídos y enviados a logs o servicios externos.</li>
+          <li><b>Dependencias:</b> paquetes o servidores MCP maliciosos.</li>
+        </ul>
+      </div>
+      <div class="good">
+        <h3>Defensas</h3>
+        <ul class="clean">
+          <li>Todo contenido externo es <b>dato, no orden</b>.</li>
+          <li>Permisos <code>allow</code>/<code>deny</code> mínimos y sandbox.</li>
+          <li>Hooks que bloquean rutas y comandos sensibles.</li>
+          <li>Aprobación humana para acciones irreversibles; revisión del diff.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">Pregúntate: <strong>si el agente leyera un texto malicioso, ¿qué es lo peor que podría hacer con sus permisos actuales?</strong></div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Costo y calidad</p>
+    <h2>Medir antes de optimizar</h2>
+    <div class="grid two">
+      <div class="card"><h3>Prompt caching</h3><p>Lo estable primero (herramientas, system prompt). Las lecturas de caché cuestan una fracción del input normal.</p></div>
+      <div class="card"><h3>Effort y modelo</h3><p>Ajusta por tipo de tarea: low para tareas simples o subagentes, high/xhigh para código difícil.</p></div>
+      <div class="card"><h3>Evals</h3><p>Un set de tareas reales con criterio de éxito. Sin eval, "mejoró" es una opinión.</p></div>
+      <div class="card"><h3>Costo por tarea completada</h3><p>Una petición barata que necesita tres reintentos no es barata. Mide tokens, turnos y retrabajo.</p></div>
+    </div>
+    <div class="callout">El mini agente imprime <strong>turnos y tokens</strong> al terminar: úsalo para comparar modelos y effort con la misma tarea.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Escalar</p>
+    <h2>Patrones multi‑agente</h2>
+    <div class="grid three">
+      <div class="card"><span class="num">1</span><h3>Orquestador y trabajadores</h3><p>Uno divide la tarea; varios la resuelven en paralelo con contexto propio.</p></div>
+      <div class="card"><span class="num">2</span><h3>Generador y revisor</h3><p>Uno implementa, otro revisa sin el sesgo de haberlo escrito.</p></div>
+      <div class="card"><span class="num">3</span><h3>Especialistas</h3><p>Un subagente por área: tests, seguridad, documentación.</p></div>
+    </div>
+    <div class="callout">Más agentes = más tokens y más coordinación. Úsalos cuando el trabajo <strong>se divide de verdad</strong> o necesitas una mirada independiente.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Práctica</p>
+    <h2>Proyecto: <span class="grad">mentoria-agentes-claude</span></h2>
+    <div class="grid two">
+      <div class="prompt"><span class="tag">agente/</span>
+  bucle.py         <span class="cm"># el bucle de la slide 8</span>
+  herramientas.py  <span class="cm"># 4 herramientas + sandbox</span>
+<span class="tag">workspace/</span>        <span class="cm"># carrito con 3 bugs</span>
+  AGENTE.md        <span class="cm"># "su" CLAUDE.md</span>
+<span class="tag">.claude/</span>
+  settings.json    <span class="cm"># permisos + hook</span>
+  skills/  agents/ hooks/
+<span class="tag">CLAUDE.md</span>
+<span class="tag">tests/</span>            <span class="cm"># sin gastar tokens</span></div>
+      <ul class="clean">
+        <li><b>1.</b> Correr el agente y leer su traza.</li>
+        <li><b>2.</b> Encontrar en el código el bucle, los permisos y el contexto.</li>
+        <li><b>3.</b> Añadir una herramienta (a mano o con la skill).</li>
+        <li><b>4.</b> Probar los guardarraíles: sandbox y hook.</li>
+        <li><b>5.</b> Usar Claude Code: plan mode y subagente revisor.</li>
+      </ul>
+    </div>
+    <div class="callout">Repo: <strong>github.com/lenelhernandez/mentoria-agentes-claude</strong></div>
+  </section>
+
+  <section class="slide center">
+    <p class="kicker">Cierre</p>
+    <h1 style="font-size:clamp(2rem,5vw,3.6rem)">Un agente es un bucle.<br><span class="grad">El oficio está alrededor.</span></h1>
+    <p class="lead" style="margin-top:24px">Buen contexto, herramientas claras, permisos mínimos y verificación. Lo mismo que pedimos a cualquier compañero de equipo.</p>
+    <p style="margin-top:34px;font-size:clamp(1.4rem,3vw,2rem);color:var(--fg);font-weight:700">¿Preguntas?</p>
+  </section>
+
+</main>
+
+<div class="hud">
+  <button id="prev" aria-label="Diapositiva anterior">‹</button>
+  <span id="counter"></span>
+  <button id="next" aria-label="Diapositiva siguiente">›</button>
+</div>
+<div class="brand">Agentes con Claude · Parte 2</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bar = document.getElementById('bar');
+  const counter = document.getElementById('counter');
+  let index = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+    counter.textContent = (index + 1) + ' / ' + slides.length;
+    bar.style.width = ((index + 1) / slides.length * 100) + '%';
+  }
+
+  function go(delta) {
+    index = Math.max(0, Math.min(slides.length - 1, index + delta));
+    render();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => go(-1));
+  document.getElementById('next').addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) {
+      e.preventDefault();
+      go(1);
+    } else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) {
+      e.preventDefault();
+      go(-1);
+    } else if (e.key === 'Home') {
+      index = 0; render();
+    } else if (e.key === 'End') {
+      index = slides.length - 1; render();
+    } else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

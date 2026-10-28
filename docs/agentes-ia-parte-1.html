@@ -1,0 +1,460 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentes de IA — Presentación</title>
+<style>
+  :root{
+    --bg:#0a0f1e;
+    --bg2:#0f1730;
+    --fg:#e9eefc;
+    --muted:#94a1c0;
+    --accent:#4ade80;
+    --accent2:#38bdf8;
+    --card:#131b31;
+    --card2:#17203a;
+    --line:#26324f;
+    --danger:#fb7185;
+    --warn:#fbbf24;
+    --maxw:1120px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background:
+      radial-gradient(1100px 600px at 85% -10%, rgba(56,189,248,.14), transparent 60%),
+      radial-gradient(900px 600px at 0% 110%, rgba(74,222,128,.12), transparent 60%),
+      linear-gradient(160deg,var(--bg),var(--bg2));
+    color:var(--fg);
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    overflow:hidden;
+  }
+
+  #deck{position:fixed;inset:0}
+
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(28px,6vw,80px);
+    max-width:var(--maxw);
+    margin:0 auto;
+    opacity:0;visibility:hidden;
+    transform:translateY(14px) scale(.995);
+    transition:opacity .32s ease, transform .32s ease, visibility .32s;
+  }
+  .slide.active{opacity:1;visibility:visible;transform:none}
+
+  .kicker{
+    text-transform:uppercase;letter-spacing:.18em;
+    font-size:clamp(.68rem,1.1vw,.8rem);
+    font-weight:700;color:var(--accent);
+    margin:0 0 14px;
+  }
+  h1{
+    font-size:clamp(2.4rem,6.4vw,4.6rem);
+    line-height:1.03;margin:0;letter-spacing:-.03em;font-weight:800;
+  }
+  h2{
+    font-size:clamp(1.7rem,3.8vw,2.9rem);
+    line-height:1.1;margin:0 0 26px;letter-spacing:-.02em;font-weight:750;
+  }
+  h1 .grad,h2 .grad{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  p{font-size:clamp(1rem,1.6vw,1.18rem);line-height:1.55;color:var(--muted);margin:0 0 16px;max-width:60ch}
+  .lead{font-size:clamp(1.1rem,2vw,1.4rem);color:#c7d2ea;max-width:52ch}
+
+  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(220px,1fr))}
+  .grid.two{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .grid.three{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+
+  .card{
+    background:linear-gradient(180deg,var(--card),var(--card2));
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:20px 20px 18px;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));opacity:.85;
+  }
+  .card h3{margin:0 0 8px;font-size:clamp(1rem,1.6vw,1.16rem);letter-spacing:-.01em}
+  .card p{font-size:clamp(.9rem,1.3vw,1rem);margin:0;max-width:34ch;color:#a8b5d2;line-height:1.45}
+  .num{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:28px;height:28px;border-radius:50%;
+    background:rgba(74,222,128,.12);border:1px solid rgba(74,222,128,.35);
+    color:var(--accent);font-size:.82rem;font-weight:800;margin-bottom:12px;
+  }
+
+  .flow{display:flex;align-items:stretch;gap:10px;flex-wrap:wrap;margin-top:8px}
+  .flow .step{
+    flex:1 1 150px;min-width:150px;
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:16px;
+  }
+  .flow .step b{display:block;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:6px}
+  .flow .step span{font-size:.95rem;color:#c3cee6;line-height:1.4;display:block}
+  .flow .arrow{align-self:center;color:var(--muted);font-size:1.4rem;padding:0 2px}
+
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:clamp(.85rem,1.35vw,1rem)}
+  th,td{text-align:left;padding:14px 16px;border-bottom:1px solid var(--line);vertical-align:top}
+  thead th{color:var(--muted);font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+  tbody td:first-child{color:var(--muted);font-weight:600;white-space:nowrap}
+  tbody tr:last-child td{border-bottom:0}
+  .hl{color:var(--accent);font-weight:650}
+
+  .callout{
+    margin-top:22px;padding:16px 20px;border-radius:14px;
+    background:rgba(74,222,128,.08);border:1px solid rgba(74,222,128,.28);
+    font-size:clamp(.95rem,1.4vw,1.08rem);color:#d5f5e2;max-width:72ch;
+  }
+  .callout strong{color:var(--accent)}
+
+  .pill{
+    display:inline-block;padding:5px 12px;border-radius:999px;
+    border:1px solid var(--line);background:rgba(255,255,255,.03);
+    color:#b9c6e2;font-size:.8rem;margin:0 6px 6px 0;
+  }
+
+  ul.clean{margin:0;padding:0;list-style:none;display:grid;gap:12px}
+  ul.clean li{
+    display:flex;gap:12px;align-items:flex-start;
+    font-size:clamp(.95rem,1.45vw,1.08rem);color:#c3cee6;line-height:1.45;
+  }
+  ul.clean li::before{
+    content:"";flex:0 0 8px;height:8px;margin-top:.52em;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 0 4px rgba(74,222,128,.14);
+  }
+
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:34px}
+  .cols h3{font-size:1rem;letter-spacing:.08em;text-transform:uppercase;margin:0 0 14px}
+  .good h3{color:var(--accent)}
+  .bad h3{color:var(--danger)}
+  .good li::before{background:var(--accent);box-shadow:0 0 0 4px rgba(74,222,128,.14)}
+  .bad li::before{background:var(--danger);box-shadow:0 0 0 4px rgba(251,113,133,.14)}
+
+  .prompt{
+    background:#0c1326;border:1px solid var(--line);border-radius:16px;
+    padding:20px 22px;font-family:"Cascadia Code",Consolas,ui-monospace,monospace;
+    font-size:clamp(.82rem,1.3vw,.96rem);line-height:1.7;color:#cdd8ef;
+    white-space:pre-wrap;
+  }
+  .prompt .tag{color:var(--accent2)}
+  .prompt .val{color:#e9eefc}
+  .prompt .ok{color:var(--accent)}
+
+  .center{text-align:center;align-items:center}
+  .center p{margin-left:auto;margin-right:auto}
+
+  .hud{
+    position:fixed;right:22px;bottom:20px;display:flex;align-items:center;gap:10px;
+    z-index:50;user-select:none;
+  }
+  .hud button{
+    width:38px;height:38px;border-radius:12px;
+    background:rgba(19,27,49,.85);border:1px solid var(--line);color:var(--fg);
+    font-size:1.15rem;cursor:pointer;line-height:1;transition:.15s;
+    backdrop-filter:blur(6px);
+  }
+  .hud button:hover{background:var(--card2);border-color:#3a4a72}
+  #counter{font-size:.8rem;color:var(--muted);min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
+
+  .progress{position:fixed;top:0;left:0;right:0;height:3px;background:rgba(255,255,255,.05);z-index:60}
+  .progress span{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent2));transition:width .3s ease}
+
+  .brand{position:fixed;left:22px;bottom:20px;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase;color:#5f6d8c;z-index:50}
+  .notes{display:none}
+
+  @media (max-width:720px){
+    .cols{grid-template-columns:1fr;gap:22px}
+    .brand{display:none}
+    .flow .arrow{display:none}
+  }
+
+  @media print{
+    @page{size:landscape;margin:0}
+    body{overflow:visible;background:#0a0f1e}
+    #deck{position:static}
+    .slide{
+      position:relative;inset:auto;opacity:1;visibility:visible;transform:none;
+      height:100vh;page-break-after:always;break-after:page;
+    }
+    .hud,.progress,.brand{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="progress"><span id="bar"></span></div>
+
+<main id="deck">
+
+  <section class="slide active">
+    <p class="kicker">Charla para el equipo</p>
+    <h1>Agentes de <span class="grad">IA</span></h1>
+    <p class="lead" style="margin-top:22px">Qué son, qué pueden hacer por nosotros y cómo empezar a usarlos sin romper nada.</p>
+    <div style="margin-top:30px">
+      <span class="pill">Duración: 15–20 min</span>
+      <span class="pill">Nivel: introductorio</span>
+      <span class="pill">Enfoque: desarrollo de software</span>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Definición</p>
+    <h2>¿Qué es un agente?</h2>
+    <div class="grid three">
+      <div class="card">
+        <span class="num">1</span>
+        <h3>Modelo (LLM)</h3>
+        <p>Interpreta el objetivo y el contexto, razona y decide el siguiente paso.</p>
+      </div>
+      <div class="card">
+        <span class="num">2</span>
+        <h3>Herramientas</h3>
+        <p>Lee y escribe archivos, ejecuta comandos, corre tests, consulta APIs y la web.</p>
+      </div>
+      <div class="card">
+        <span class="num">3</span>
+        <h3>Contexto</h3>
+        <p>Mantiene el hilo de la tarea, recuerda decisiones y revisa los resultados.</p>
+      </div>
+    </div>
+    <div class="callout">No solo responde: <strong>actúa en un ciclo</strong> hasta cumplir el objetivo o quedarse sin camino.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Cómo funciona</p>
+    <h2>El bucle del agente</h2>
+    <div class="flow">
+      <div class="step"><b>Objetivo</b><span>"Arregla el bug del login"</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Plan</b><span>Leer el código, reproducir, proponer un fix</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Acción</b><span>Lee archivos, corre tests, edita</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>Observación</b><span>Falla algo: ajusta el plan y repite</span></div>
+    </div>
+    <div class="callout">La diferencia clave: <strong>verifica su propio trabajo</strong> con herramientas, no solo "cree" que funcionó.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Evolución</p>
+    <h2>Chatbot vs. Copilot vs. Agente</h2>
+    <table>
+      <thead>
+        <tr><th></th><th>Chatbot</th><th>Copilot</th><th>Agente</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Quién ejecuta</td><td>Tú copias y pegas</td><td>Tú aceptas sugerencias</td><td class="hl">El agente</td></tr>
+        <tr><td>Alcance</td><td>Una respuesta</td><td>Una línea o función</td><td class="hl">Una tarea completa</td></tr>
+        <tr><td>Verificación</td><td>Manual</td><td>Parcial</td><td class="hl">Tests y comandos</td></tr>
+        <tr><td>Riesgo</td><td>Bajo</td><td>Bajo</td><td>Medio: exige revisión</td></tr>
+      </tbody>
+    </table>
+    <div class="callout">Más autonomía = más velocidad, pero también <strong>más necesidad de permisos y revisión</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Capacidades</p>
+    <h2>¿Qué puede hacer hoy?</h2>
+    <div class="grid three">
+      <div class="card"><h3>Leer y editar código</h3><p>Navega el repo, entiende patrones y aplica cambios coherentes.</p></div>
+      <div class="card"><h3>Ejecutar comandos</h3><p>Instala, compila, corre tests y lee la salida para corregir.</p></div>
+      <div class="card"><h3>Buscar en el codebase</h3><p>Encuentra dónde se usa algo sin que le digas el archivo exacto.</p></div>
+      <div class="card"><h3>Consultar la web y APIs</h3><p>Documentación, issues, ejemplos y respuestas de servicios externos.</p></div>
+      <div class="card"><h3>Git y pull requests</h3><p>Crea ramas, revisa diffs y prepara descripciones de PR.</p></div>
+      <div class="card"><h3>Documentar</h3><p>Genera READMEs, ADRs, comentarios y guías de onboarding.</p></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">En el día a día</p>
+    <h2>Casos de uso reales</h2>
+    <div class="grid three">
+      <div class="card"><span class="num">01</span><h3>Onboarding</h3><p>"Explícame la arquitectura de este repo y por dónde empiezo."</p></div>
+      <div class="card"><span class="num">02</span><h3>Refactors</h3><p>Migrar de librería, renombrar conceptos, extraer módulos.</p></div>
+      <div class="card"><span class="num">03</span><h3>Tests</h3><p>Cubrir casos borde y reproducir bugs con un test que falla.</p></div>
+      <div class="card"><span class="num">04</span><h3>Debugging</h3><p>Seguir logs, formular hipótesis y validarlas con comandos.</p></div>
+      <div class="card"><span class="num">05</span><h3>Code review</h3><p>Primera pasada sobre un diff antes de la revisión humana.</p></div>
+      <div class="card"><span class="num">06</span><h3>Automatización</h3><p>Scripts de migración, limpieza de datos, tareas de DevOps.</p></div>
+    </div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Cómo delegar</p>
+    <h2>Una tarea bien pedida</h2>
+    <div class="grid two">
+      <div>
+        <ul class="clean">
+          <li><b>Contexto:</b> repo, stack, rama, convenciones.</li>
+          <li><b>Objetivo:</b> un resultado concreto y observable.</li>
+          <li><b>Restricciones:</b> qué no tocar, qué no instalar.</li>
+          <li><b>Criterio de éxito:</b> cómo sabremos que terminó.</li>
+        </ul>
+      </div>
+      <div class="prompt"><span class="tag">Contexto:</span> <span class="val">API Node + TypeScript, tests con vitest, rama feature/rate-limit.</span>
+
+<span class="tag">Objetivo:</span> <span class="val">Añadir rate limit al endpoint POST /login.</span>
+
+<span class="tag">Restricciones:</span> <span class="val">Sin dependencias nuevas. Sigue el patrón de los middlewares existentes.</span>
+
+<span class="tag">Éxito:</span> <span class="ok">Tests pasan y el diff es pequeño y revisable.</span></div>
+    </div>
+    <div class="callout">Un buen prompt se parece mucho a un <strong>buen ticket</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Ejemplo</p>
+    <h2>De ticket a PR</h2>
+    <div class="flow">
+      <div class="step"><b>1. Entender</b><span>Lee el ticket y busca el código relevante</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>2. Planear</b><span>Propone un plan antes de tocar nada</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>3. Implementar</b><span>Edita archivos siguiendo el estilo del repo</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>4. Verificar</b><span>Corre tests, lint y typecheck</span></div>
+      <div class="arrow">→</div>
+      <div class="step"><b>5. Entregar</b><span>Diff listo para revisión humana</span></div>
+    </div>
+    <div class="callout">El paso 5 es obligatorio: <strong>nadie mergea sin revisar</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Realidad</p>
+    <h2>Límites y riesgos</h2>
+    <div class="cols">
+      <div class="good">
+        <h3>Lo que hace bien</h3>
+        <ul class="clean">
+          <li>Tareas acotadas y repetitivas.</li>
+          <li>Explorar código desconocido rápido.</li>
+          <li>Escribir la primera versión de tests.</li>
+          <li>Iterar cuando hay feedback claro.</li>
+        </ul>
+      </div>
+      <div class="bad">
+        <h3>Dónde falla</h3>
+        <ul class="clean">
+          <li>Inventa APIs o supuestos que no existen.</li>
+          <li>Pierde contexto en tareas muy grandes.</li>
+          <li>Puede romper cosas si tiene permisos de más.</li>
+          <li>Puede exponer secretos si se los pegas.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout">Regla de oro: <strong>confía, pero verifica</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Buenas prácticas</p>
+    <h2>Cómo usarlos bien</h2>
+    <div class="grid two">
+      <ul class="clean">
+        <li>Tareas pequeñas y con criterio de éxito claro.</li>
+        <li>Dar contexto: archivos, comandos, convenciones.</li>
+        <li>Tests como red de seguridad, siempre.</li>
+      </ul>
+      <ul class="clean">
+        <li>Permisos mínimos: solo lo que necesita.</li>
+        <li>Revisar el diff completo, no solo el resumen.</li>
+        <li>Nunca pegar credenciales ni datos sensibles.</li>
+      </ul>
+    </div>
+    <div class="callout">Empieza en tareas de bajo riesgo y <strong>sube la autonomía gradualmente</strong>.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Ecosistema</p>
+    <h2>Herramientas</h2>
+    <div class="grid three">
+      <div class="card">
+        <h3>En la terminal</h3>
+        <p>Agentes que viven en el repo y usan tus comandos: <span class="hl">opencode</span>, Claude Code, Aider.</p>
+      </div>
+      <div class="card">
+        <h3>En el IDE</h3>
+        <p>Integrados en el editor, con más o menos autonomía: Cursor, Copilot, Windsurf.</p>
+      </div>
+      <div class="card">
+        <h3>En la nube</h3>
+        <p>Agentes que toman issues y abren PRs de forma asíncrona.</p>
+      </div>
+    </div>
+    <div class="callout">El panorama cambia rápido: elige por <strong>integración, permisos y trazabilidad</strong>, no por moda.</div>
+  </section>
+
+  <section class="slide">
+    <p class="kicker">Siguiente paso</p>
+    <h2>Cómo empezar mañana</h2>
+    <div class="grid three">
+      <div class="card"><span class="num">1</span><h3>Elige algo real</h3><p>Un bug pequeño, un test faltante o un refactor acotado.</p></div>
+      <div class="card"><span class="num">2</span><h3>Pide el plan</h3><p>Antes de ejecutar: que explique qué va a hacer y por qué.</p></div>
+      <div class="card"><span class="num">3</span><h3>Revisa y mide</h3><p>Diff, tests y tiempo ahorrado. Ajusta la autonomía según el resultado.</p></div>
+    </div>
+    <div class="callout">Métrica simple: <strong>tiempo, calidad y retrabajo</strong>. Si el retrabajo sube, la tarea era demasiado grande.</div>
+  </section>
+
+  <section class="slide center">
+    <p class="kicker">Cierre</p>
+    <h1 style="font-size:clamp(2rem,5vw,3.6rem)">La IA no reemplaza el criterio:<br><span class="grad">lo amplifica</span></h1>
+    <p class="lead" style="margin-top:24px">Nosotros seguimos siendo responsables de lo que se mergea.</p>
+    <p style="margin-top:34px;font-size:clamp(1.4rem,3vw,2rem);color:var(--fg);font-weight:700">¿Preguntas?</p>
+  </section>
+
+</main>
+
+<div class="hud">
+  <button id="prev" aria-label="Diapositiva anterior">‹</button>
+  <span id="counter">1 / 13</span>
+  <button id="next" aria-label="Diapositiva siguiente">›</button>
+</div>
+<div class="brand">Agentes de IA · Equipo de desarrollo</div>
+
+<script>
+  const slides = Array.from(document.querySelectorAll('.slide'));
+  const bar = document.getElementById('bar');
+  const counter = document.getElementById('counter');
+  let index = 0;
+
+  function render() {
+    slides.forEach((s, i) => s.classList.toggle('active', i === index));
+    counter.textContent = (index + 1) + ' / ' + slides.length;
+    bar.style.width = ((index + 1) / slides.length * 100) + '%';
+  }
+
+  function go(delta) {
+    index = Math.max(0, Math.min(slides.length - 1, index + delta));
+    render();
+  }
+
+  document.getElementById('prev').addEventListener('click', () => go(-1));
+  document.getElementById('next').addEventListener('click', () => go(1));
+
+  document.addEventListener('keydown', (e) => {
+    if (['ArrowRight', 'ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key)) {
+      e.preventDefault();
+      go(1);
+    } else if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) {
+      e.preventDefault();
+      go(-1);
+    } else if (e.key === 'Home') {
+      index = 0; render();
+    } else if (e.key === 'End') {
+      index = slides.length - 1; render();
+    } else if (e.key.toLowerCase() === 'f') {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+      else document.exitFullscreen();
+    }
+  });
+
+  render();
+</script>
+</body>
+</html>

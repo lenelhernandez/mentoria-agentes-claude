@@ -1,0 +1,9 @@
+[project]
+name = "mentoria-agentes-claude"
+version = "0.1.0"
+description = "Mini agente de desarrollo con Claude para practicar los conceptos de la mentoría"
+requires-python = ">=3.11"
+dependencies = ["anthropic>=2.3", "pytest>=8"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
